@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>POS System</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+  <!-- ===== Login ===== -->
+  <div id="loginScreen" class="login-container">
+    <div class="login-box">
+      <h2>&#127978; POS TERMINAL</h2>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="loginUsername" placeholder="Enter username">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="loginPassword" placeholder="Enter password">
+      </div>
+      <button class="btn btn-primary" style="width:100%;" onclick="login()">Login</button>
+    </div>
+  </div>
+
+  <!-- ===== Super Admin Panel ===== -->
+  <div id="superAdminPanel" class="hidden">
+    <header class="header">
+      <div class="logo">&#127970; POS — Super Admin</div>
+      <div class="user-info">
+        <span id="saCurrentUser"></span>
+        <button class="btn btn-secondary btn-sm" onclick="showSAAddShopModal()">+ New Shop</button>
+        <button class="btn btn-danger" onclick="logout()">Logout</button>
+      </div>
+    </header>
+
+    <div class="sa-content">
+      <!-- Summary Cards -->
+      <div class="sa-summary">
+        <div class="sa-card">
+          <span class="sa-label">Total Shops</span>
+          <span class="sa-value" id="saTotalShops">0</span>
+        </div>
+        <div class="sa-card">
+          <span class="sa-label">Total Revenue (All Shops)</span>
+          <span class="sa-value green" id="saGrandRevenue">GH₵ 0.00</span>
+        </div>
+        <div class="sa-card">
+          <span class="sa-label">Total Outstanding Debt</span>
+          <span class="sa-value red" id="saGrandDebt">GH₵ 0.00</span>
+        </div>
+      </div>
+
+      <!-- Shops Table -->
+      <div class="sa-table-wrapper">
+        <h3>&#127978; All Tenants / Shops</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Shop ID</th>
+              <th>Inventory Items</th>
+              <th>Total Sales</th>
+              <th>Revenue</th>
+              <th>Outstanding Debt</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="saShopsTableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Main App (Shop Users) ===== -->
+  <div id="mainApp" class="hidden">
+    <header class="header">
+      <div class="logo">&#127978; POS TERMINAL</div>
+      <div class="user-info">
+        <span id="currentUser"></span>
+        <!-- Back to superadmin button (hidden by default) -->
+        <button id="saBackBtn" class="btn btn-secondary btn-sm hidden" onclick="saBackToPanel()">&#8592; Admin Panel</button>
+        <button class="btn btn-danger" onclick="logout()">Logout</button>
+      </div>
+    </header>
+
+    <div class="layout">
+      <nav class="sidebar">
+        <button class="nav-btn" onclick="showSection('dashboard', event); loadDashboard()">&#128202; Dashboard</button>
+        <button class="nav-btn active" onclick="showSection('pos', event)">&#128722; POS</button>
+        <button class="nav-btn" onclick="showSection('posInventory', event)">&#128230; Inventory</button>
+        <button class="nav-btn" onclick="showSection('sales', event)">&#129534; Sales</button>
+        <button class="nav-btn" onclick="showSection('debtors', event)">&#128176; Debtors</button>
+        <button class="nav-btn" onclick="showSection('receiving', event); populateWarehouseSelects()">&#128229; Receiving</button>
+        <button class="nav-btn" onclick="showSection('dispatch', event); populateWarehouseSelects()">&#128228; Dispatch</button>
+        <button class="nav-btn" onclick="showSection('adjustments', event); populateWarehouseSelects()">&#128295; Adjustments</button>
+        <button class="nav-btn" onclick="showSection('warehouseInventory', event)">&#128230; Warehouse</button>
+        <button class="nav-btn" onclick="showSection('warehouseReports', event)">&#128202; Wh. Reports</button>
+        <button class="nav-btn" onclick="showSection('creditors', event)">&#128179; Creditors</button>
+        <hr>
+        <button class="nav-btn admin-only" onclick="showSection('users', event); loadShopUsers()">&#128100; Manage Users</button>
+        <button class="nav-btn admin-only" onclick="showClearDataModal()">&#9888; Clear All Data</button>
+        <button class="nav-btn admin-only" onclick="showAddAdminModal()">&#128274; Add User</button>
+      </nav>
+
+      <main class="content-area">
+
+        <!-- Dashboard -->
+        <section id="dashboard" class="section hidden">
+          <h2>&#128202; Business Dashboard</h2>
+          <div class="dashboard-grid">
+            <div class="dash-card dash-card-wide">
+              <h3>&#128176; Revenue &amp; Profit</h3>
+              <div class="dash-stats">
+                <div class="dash-stat"><span class="dash-label">Today's Revenue</span><span class="dash-value" id="dashTodayRevenue">GH₵ 0.00</span></div>
+                <div class="dash-stat"><span class="dash-label">This Month's Revenue</span><span class="dash-value" id="dashMonthRevenue">GH₵ 0.00</span></div>
+                <div class="dash-stat"><span class="dash-label">Today's Profit</span><span class="dash-value green" id="dashTodayProfit">GH₵ 0.00</span></div>
+                <div class="dash-stat"><span class="dash-label">This Month's Profit</span><span class="dash-value green" id="dashMonthProfit">GH₵ 0.00</span></div>
+              </div>
+            </div>
+            <div class="dash-card">
+              <h3>&#128203; Credits Due</h3>
+              <div class="dash-stats">
+                <div class="dash-stat"><span class="dash-label">Active Debtors</span><span class="dash-value red" id="dashTotalDebtors">0</span></div>
+                <div class="dash-stat"><span class="dash-label">Outstanding (Debtors)</span><span class="dash-value red" id="dashOutstandingDebt">GH₵ 0.00</span></div>
+                <div class="dash-stat"><span class="dash-label">Creditors Owed</span><span class="dash-value orange" id="dashCreditorsOwed">GH₵ 0.00</span></div>
+              </div>
+              <h4 style="margin-top:12px;color:#e53e3e;font-size:13px;">Overdue Debtors</h4>
+              <div id="dashOverdueList" class="dash-overdue-list"></div>
+            </div>
+            <div class="dash-card">
+              <h3>&#128308; Low Stock Alerts</h3>
+              <div id="dashLowStockList" class="dash-list"></div>
+            </div>
+            <div class="dash-card dash-card-wide">
+              <h3>&#127942; Most Purchased Items</h3>
+              <table class="dash-table">
+                <thead><tr><th>Product</th><th>Units Sold</th><th>Revenue</th></tr></thead>
+                <tbody id="dashTopItems"></tbody>
+              </table>
+            </div>
+            <div class="dash-card dash-card-full">
+              <h3>&#128200; Revenue — Last 7 Days</h3>
+              <canvas id="dashRevenueChart" height="100"></canvas>
+            </div>
+          </div>
+        </section>
+
+        <!-- POS -->
+<section id="pos" class="section active">
+  <h2>Point of Sale</h2>
+  
+  <div class="pos-layout">
+    <div class="product-selection">
+      <div class="form-group">
+        <label>Select Product (Type to Search)</label>
+        <input list="productOptions" id="productSearchInput" oninput="handleProductSearch()" placeholder="Start typing product name..." class="form-control">
+        <datalist id="productOptions"></datalist>
+        <input type="hidden" id="selectedProductSku">
+      </div>
+      <div class="form-group">
+        <label>Unit Price (GH₵)</label>
+        <input type="number" id="unitPrice" readonly>
+      </div>
+      <div class="form-group">
+        <label>Quantity</label>
+        <input type="number" id="quantity" value="1" min="1">
+      </div>
+      <button class="btn btn-primary" onclick="addToCart()">Add to Cart</button>
+    </div>
+
+    <div class="cart-summary">
+      <h3>Cart</h3>
+      <div id="cartItems" class="cart-items-container"></div>
+      
+      <div class="cart-total">
+        <span>Subtotal:</span>
+        <span>GH₵ <span id="cartSubtotal">0.00</span></span>
+      </div>
+
+      <div class="form-group" style="margin-top: 10px;">
+        <label>Discount (GH₵)</label>
+        <input type="number" id="cartDiscount" value="0" min="0" step="0.01" oninput="renderCart()">
+      </div>
+
+      <div class="cart-total" style="border-top: 2px solid #333; margin-top: 5px; padding-top: 5px;">
+        <span>Total Payable:</span>
+        <span>GH₵ <span id="cartTotal">0.00</span></span>
+      </div>
+
+      <button class="btn btn-secondary" style="width:100%; margin-top:10px;" onclick="clearCart()">Clear Cart</button>
+    </div>
+  </div>
+
+  <div class="checkout-area" style="margin-top: 20px;">
+    <h3>Checkout</h3>
+    <div class="form-group">
+      <label>Customer Name (Optional)</label>
+      <input type="text" id="customerName" placeholder="e.g. Ama">
+    </div>
+    <div class="form-group">
+      <label>Customer Phone (Optional)</label>
+      <input type="text" id="customerPhone" placeholder="e.g. 024xxxxxxx">
+    </div>
+    <div class="form-group">
+      <label>Payment Type</label>
+      <select id="paymentType" onchange="updateCheckoutFields()">
+        <option value="cash">Cash</option>
+        <option value="momo">Mobile Money</option>
+        <option value="card">Card</option>
+        <option value="credit">Credit</option>
+      </select>
+    </div>
+    <div class="form-group" id="cashAmountGroup">
+      <label>Amount Received (GH₵)</label>
+      <input type="number" id="cashAmount" placeholder="0.00">
+    </div>
+    <div id="dueDateGroup" class="form-group hidden">
+      <label>Payment Due Date</label>
+      <input type="date" id="dueDateInput">
+    </div>
+    <button class="btn btn-success" style="width:100%; margin-top: 10px;" onclick="processCheckout()">Process Checkout</button>
+  </div>
+</section>
+
+        <!-- Inventory -->
+        <section id="posInventory" class="section hidden">
+          <h2>Inventory Management</h2>
+          <div class="inventory-header">
+            <input type="text" id="inventorySearch" placeholder="Search inventory..." onkeyup="filterInventory()">
+            <button class="btn btn-primary" onclick="showAddProductModal()">+ Add New Product</button>
+          </div>
+          <table>
+            <thead><tr><th>SKU</th><th>Name</th><th>Category</th><th>Sell Price</th><th>Cost Price</th><th>Stock</th><th>Low Limit</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="inventoryTableBody"></tbody>
+          </table>
+        </section>
+
+        <!-- Sales -->
+       <section id="sales" class="section hidden">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <h2>Sales History</h2>
+    <div class="search-box" style="width: 300px;">
+      <input 
+        type="text" 
+        id="salesSearchInput" 
+        placeholder="Search customer name or phone..." 
+        onkeyup="filterSales()"
+        style="width: 100%; padding: 8px; border: 1px solid #cbd5e0; border-radius: 5px;"
+      >
+    </div>
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Receipt #</th>
+        <th>Date</th>
+        <th>Customer</th>
+        <th>Items</th>
+        <th>Total</th>
+        <th>Payment</th>
+        <th>Status</th>
+        <th>Details</th>
+      </tr>
+    </thead>
+    <tbody id="salesTableBody"></tbody>
+  </table>
+</section>
+
+        <!-- Debtors -->
+        <section id="debtors" class="section hidden">
+  <h2>Debtors / Credit Management</h2>
+  <div class="inventory-header">
+    <div class="summary-cards">
+      <p>Active Debtors: <strong id="totalDebtors">0</strong></p>
+      <p>Total Outstanding: GH₵ <strong id="totalDebt">0.00</strong></p>
+    </div>
+    <button class="btn btn-primary" onclick="openAddDebtorModal()">+ Add Existing Debt</button>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>Customer</th>
+        <th>Phone</th>
+        <th>Initial Amount</th>
+        <th>Remaining</th>
+        <th>Date Issued</th>
+        <th>Due Date</th>
+        <th>Status</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="debtorsTableBody"></tbody>
+  </table>
+</section>
+
+        <!-- Receiving -->
+        <section id="receiving" class="section hidden">
+          <h2>&#128229; Inbound Receiving</h2>
+          <p style="color:#718096;font-size:13px;margin-bottom:12px;">Received items are added directly to the <strong>Warehouse Inventory</strong>.</p>
+          <div class="form-group">
+            <label>Warehouse Product</label>
+            <select id="inWarehouseSelect" onchange="fillInboundFromWarehouse()">
+              <option value="">-- Select existing or enter new below --</option>
+            </select>
+          </div>
+          <div class="form-group"><label>SKU/ID <span style="color:#718096;font-size:11px">(auto-filled or leave for new)</span></label><input type="text" id="inProductId" placeholder="Auto-generated for new products"></div>
+          <div class="form-group"><label>Product Name</label><input type="text" id="inProductName" placeholder="e.g. Cindy Rice"></div>
+          <div class="form-group"><label>Category</label><input type="text" id="inCategory" placeholder="e.g. Grains"></div>
+          <div class="form-group"><label>Quantity Received</label><input type="number" id="inQty" value="1" min="1"></div>
+          <div class="form-group"><label>Cost per unit (GH₵)</label><input type="number" id="inCost" value="0" min="0"></div>
+          <div class="form-group"><label>Location in Warehouse</label><input type="text" id="inLocation" placeholder="e.g. A1"></div>
+          <button class="btn btn-success" onclick="addInbound()">&#10003; Record Inbound</button>
+          <h3 style="margin-top:20px">Recent Inbound</h3>
+          <table>
+            <thead><tr><th>Date</th><th>SKU</th><th>Product</th><th>Qty</th><th>Cost</th><th>Location</th></tr></thead>
+            <tbody id="inboundTableBody"></tbody>
+          </table>
+        </section>
+
+        <!-- Dispatch -->
+        <section id="dispatch" class="section hidden">
+          <h2>&#128228; Outbound Dispatch</h2>
+          <p style="color:#718096;font-size:13px;margin-bottom:12px;">Dispatching deducts from <strong>Warehouse Inventory</strong>. If destination is a valid Shop ID, stock is <strong>automatically added to that shop's inventory</strong>.</p>
+          <div class="form-group">
+            <label>Warehouse Product</label>
+            <select id="outWarehouseSelect" onchange="fillOutboundFromWarehouse()">
+              <option value="">-- Select Product --</option>
+            </select>
+          </div>
+          <div class="form-group"><label>SKU/ID</label><input type="text" id="outProductId" placeholder="Auto-filled from selection"></div>
+          <div class="form-group"><label>Quantity to Dispatch</label><input type="number" id="outQty" value="1" min="1"></div>
+          <div class="form-group">
+            <label>Destination Shop ID <span style="color:#718096;font-size:11px">(enter a Shop ID to push stock into its inventory)</span></label>
+            <input type="text" id="outDestination" placeholder="e.g. shop2 or External Delivery">
+          </div>
+          <button class="btn btn-primary" onclick="addOutbound()">&#128228; Record Dispatch</button>
+          <h3 style="margin-top:20px">Recent Outbound</h3>
+          <table>
+            <thead><tr><th>Date</th><th>SKU</th><th>Product</th><th>Qty</th><th>Destination</th><th>Pushed to Shop?</th></tr></thead>
+            <tbody id="outboundTableBody"></tbody>
+          </table>
+        </section>
+
+        <!-- Adjustments -->
+        <section id="adjustments" class="section hidden">
+          <h2>&#128295; Stock Adjustments</h2>
+          <p style="color:#718096;font-size:13px;margin-bottom:12px;">Adjustments apply to <strong>Warehouse Inventory</strong> stock levels.</p>
+          <div class="form-group">
+            <label>Warehouse Product</label>
+            <select id="adjustWarehouseSelect" onchange="fillAdjustFromWarehouse()">
+              <option value="">-- Select Product --</option>
+            </select>
+          </div>
+          <div class="form-group"><label>SKU/ID</label><input type="text" id="adjustProductId" placeholder="Auto-filled from selection"></div>
+          <div class="form-group"><label>Adjustment Qty <span style="color:#718096;font-size:11px">(use negative for loss/damage)</span></label><input type="number" id="adjustQtyChange" value="0"></div>
+          <div class="form-group">
+            <label>Reason</label>
+            <select id="adjustReason">
+              <option value="damage">Damage</option>
+              <option value="loss">Loss</option>
+              <option value="count">Stock Count Correction</option>
+              <option value="return">Return</option>
+            </select>
+          </div>
+          <button class="btn btn-primary" onclick="applyAdjustment()">Apply Adjustment</button>
+          <h3 style="margin-top:20px">Recent Adjustments</h3>
+          <table>
+            <thead><tr><th>Date</th><th>SKU</th><th>Change</th><th>Reason</th><th>By</th></tr></thead>
+            <tbody id="adjustmentsTableBody"></tbody>
+          </table>
+        </section>
+
+        <!-- Warehouse Inventory -->
+        <section id="warehouseInventory" class="section hidden">
+          <h2>Warehouse Inventory</h2>
+          <div class="inventory-header">
+            <input type="text" id="warehouseInventorySearch" placeholder="Search..." oninput="filterWarehouseInventory()">
+            <button class="btn btn-primary" onclick="showWarehouseProductModal()">+ Add Product</button>
+          </div>
+          <table>
+            <thead><tr><th>SKU</th><th>Name</th><th>Category</th><th>Cost</th><th>Stock</th><th>Location</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="warehouseInventoryTableBody"></tbody>
+          </table>
+        </section>
+
+        <!-- Warehouse Reports -->
+        <section id="warehouseReports" class="section hidden">
+          <h2>Warehouse Reports</h2>
+          <div class="summary-cards">
+            <p>Today Inbound: <strong id="todayInbound">0</strong></p>
+            <p>Today Outbound: <strong id="todayOutbound">0</strong></p>
+          </div>
+          <canvas id="stockMovementsChart" width="400" height="150" style="margin-top:15px"></canvas>
+          <h3 style="margin-top:20px">Movement Summary</h3>
+          <table>
+            <thead><tr><th>Date</th><th>Inbound</th><th>Outbound</th><th>Net</th></tr></thead>
+            <tbody id="movementSummaryBody"></tbody>
+          </table>
+        </section>
+
+        <!-- Creditors -->
+        <section id="creditors" class="section hidden">
+          <h2>Creditors</h2>
+          <div class="form-group"><label>Creditor Name</label><input type="text" id="creditorName" placeholder="e.g. Supplier A"></div>
+          <div class="form-group"><label>Amount Owed</label><input type="number" id="creditorAmount" value="0" min="0"></div>
+          <div class="form-group"><label>Due Date</label><input type="date" id="creditorDueDate"></div>
+          <button class="btn btn-success" onclick="addCreditor()">Add Creditor</button>
+          <p style="margin-top:10px;font-size:13px;">Total Unpaid Creditors: GH₵ <strong id="totalCredits">0.00</strong></p>
+          <table style="margin-top:10px">
+            <thead><tr><th>ID</th><th>Name</th><th>Amount</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="creditorsTableBody"></tbody>
+          </table>
+        </section>
+
+        <!-- Manage Users (Admin only) -->
+        <section id="users" class="section hidden">
+          <h2>&#128100; Manage Shop Users</h2>
+          <p style="color:#718096;margin-bottom:15px;font-size:13px;">Users who can log into this shop: <strong id="usersShopLabel"></strong></p>
+          <button class="btn btn-primary" style="margin-bottom:15px" onclick="showAddAdminModal()">+ Add New User</button>
+          <table>
+            <thead><tr><th>Username</th><th>Role</th><th>Created</th><th>Actions</th></tr></thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ===== Modals ===== -->
+
+  <!-- Add Product Modal -->
+  <div id="posProductModal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Add New Product</h3>
+      <div class="form-group"><label>SKU/ID (auto-generated)</label><input type="text" id="productId" placeholder="Auto"></div>
+      <div class="form-group"><label>Product Name</label><input type="text" id="productName" placeholder="e.g. Abena Rice"></div>
+      <div class="form-group"><label>Category</label><input type="text" id="productCategory" placeholder="e.g. Grains"></div>
+      <div class="form-group"><label>Selling Price</label><input type="number" id="sellingPrice" placeholder="GH₵"></div>
+      <div class="form-group"><label>Cost Price</label><input type="number" id="costPrice" placeholder="GH₵"></div>
+      <div class="form-group"><label>Stock Quantity</label><input type="number" id="stockQuantity" placeholder="e.g. 200"></div>
+      <div class="form-group"><label>Low Stock Alert Limit</label><input type="number" id="stockLimit" placeholder="e.g. 10"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('posProductModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveProduct()">Save Product</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Warehouse Product Modal -->
+  <div id="warehouseProductModal" class="modal hidden">
+    <div class="modal-content">
+      <h3>Add Warehouse Product</h3>
+      <div class="form-group"><label>SKU/ID</label><input type="text" id="warehouseProductId" placeholder="Auto"></div>
+      <div class="form-group"><label>Product Name</label><input type="text" id="warehouseProductName" placeholder="e.g. Cindy Rice"></div>
+      <div class="form-group"><label>Category</label><input type="text" id="warehouseProductCategory" placeholder="e.g. Grains"></div>
+      <div class="form-group"><label>Cost Price</label><input type="number" id="warehouseCostPrice" placeholder="GH₵"></div>
+      <div class="form-group"><label>Stock Quantity</label><input type="number" id="warehouseStockQuantity" placeholder="e.g. 200"></div>
+      <div class="form-group"><label>Location</label><input type="text" id="warehouseProductLocation" placeholder="e.g. B2"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('warehouseProductModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveWarehouseProduct()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Debtor Modal -->
+  <div id="addDebtorModal" class="modal hidden">
+  <div class="modal-content">
+    <h2 id="debtorModalTitle">Add Existing Debtor</h2>
+    
+    <input type="hidden" id="editDebtorId">
+
+    <div class="form-group">
+      <label>Customer Name</label>
+      <input type="text" id="debtorName" placeholder="Enter customer name">
+    </div>
+
+    <div class="form-group">
+      <label>Phone</label>
+      <input type="text" id="debtorPhone" placeholder="Enter phone number">
+    </div>
+
+    <div class="form-group">
+      <label>Debt Amount (GH₵)</label>
+      <input type="number" id="debtAmount" placeholder="0.00">
+    </div>
+
+    <div class="form-group">
+      <label>Date of Debt</label>
+      <input type="date" id="debtDate">
+    </div>
+
+    <div class="form-group">
+      <label>Due Date (Optional)</label>
+      <input type="date" id="debtDueDate">
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('addDebtorModal')">Cancel</button>
+      <button class="btn btn-primary" id="debtorSubmitBtn" onclick="handleDebtorSubmit()">Save Debtor</button>
+    </div>
+  </div>
+</div>
+
+  <!-- Add User / Shop Modal -->
+  <div id="addAdminModal" class="modal hidden">
+    <div class="modal-content">
+      <h3>&#128274; Add User / Shop</h3>
+      <div class="form-group">
+        <label>Shop ID <span style="color:#718096;font-size:12px">(creates shop if new)</span></label>
+        <input type="text" id="adminShopId" placeholder="e.g. shop2">
+      </div>
+      <div class="form-group"><label>Username</label><input type="text" id="adminUsername" placeholder="Enter username"></div>
+      <div class="form-group"><label>Password</label><input type="password" id="adminPassword" placeholder="Enter password"></div>
+      <div class="form-group">
+        <label>Role</label>
+        <select id="adminRole">
+          <option value="owner">Owner (full access)</option>
+          <option value="admin">Admin (manage users)</option>
+          <option value="staff">Staff (POS only)</option>
+        </select>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('addAdminModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="saveAdmin()">Create User</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Clear All Data Modal -->
+  <div id="clearDataModal" class="modal hidden">
+    <div class="modal-content">
+      <h3>&#9888;&#65039; Clear All Data</h3>
+      <p style="color:#e53e3e;text-align:center;margin-bottom:10px;">This permanently deletes ALL data for this shop including inventory, sales, debtors, creditors, and warehouse records.</p>
+      <p style="text-align:center;font-size:13px;color:#718096;margin-bottom:15px;">Type <strong>DELETE</strong> to confirm:</p>
+      <div class="form-group"><input type="text" id="clearDataConfirmInput" placeholder="Type DELETE" style="text-align:center"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('clearDataModal')">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmClearAllData()">&#128465; Clear All Data</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Receipt Modal -->
+  <div id="receiptModal" class="modal hidden">
+    <div class="modal-content" style="max-width:480px">
+      <h3>&#129534; Sale Receipt</h3>
+      <div id="receiptContent"></div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="closeModal('receiptModal')">Close</button>
+        <button class="btn btn-primary" onclick="printReceipt()">&#128424; Print</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Partial Payment Modal -->
+ <div id="partialPaymentModal" class="modal hidden">
+  <div class="modal-content">
+    <h3>&#128176; Record Debt Payment</h3>
+    <input type="hidden" id="partialPayDebtorId">
+    
+    <div style="background: #fff5f5; padding: 10px; border-radius: 4px; margin-bottom: 15px; text-align: center; border: 1px solid #feb2b2;">
+      <p style="color: #c53030; font-size: 11px; text-transform: uppercase;">Balance Remaining</p>
+      <p style="font-size: 20px; font-weight: bold; color: #9b2c2c;">GH₵ <span id="partialPayRemaining">0.00</span></p>
+    </div>
+
+    <div class="form-group">
+      <label>Amount Paid (GH₵)</label>
+      <input type="number" id="partialPayAmount" placeholder="0.00" step="0.01">
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('partialPaymentModal')">Cancel</button>
+      <button class="btn btn-success" onclick="savePartialPayment()">Confirm Payment</button>
+    </div>
+  </div>
+</div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
