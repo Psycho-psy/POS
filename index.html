@@ -9,7 +9,6 @@
 </head>
 <body>
 
-  <!-- ===== Login ===== -->
   <div id="loginScreen" class="login-container">
     <div class="login-box">
       <h2>&#127978; POS TERMINAL</h2>
@@ -25,7 +24,6 @@
     </div>
   </div>
 
-  <!-- ===== Super Admin Panel ===== -->
   <div id="superAdminPanel" class="hidden">
     <header class="header">
       <div class="logo">&#127970; POS — Super Admin</div>
@@ -37,7 +35,7 @@
     </header>
 
     <div class="sa-content">
-      <!-- Summary Cards -->
+    
       <div class="sa-summary">
         <div class="sa-card">
           <span class="sa-label">Total Shops</span>
@@ -53,7 +51,6 @@
         </div>
       </div>
 
-      <!-- Shops Table -->
       <div class="sa-table-wrapper">
         <h3>&#127978; All Tenants / Shops</h3>
         <table>
@@ -73,13 +70,12 @@
     </div>
   </div>
 
-  <!-- ===== Main App (Shop Users) ===== -->
   <div id="mainApp" class="hidden">
     <header class="header">
       <div class="logo">&#127978; POS TERMINAL</div>
       <div class="user-info">
         <span id="currentUser"></span>
-        <!-- Back to superadmin button (hidden by default) -->
+        
         <button id="saBackBtn" class="btn btn-secondary btn-sm hidden" onclick="saBackToPanel()">&#8592; Admin Panel</button>
         <button class="btn btn-danger" onclick="logout()">Logout</button>
       </div>
@@ -106,7 +102,6 @@
 
       <main class="content-area">
 
-        <!-- Dashboard -->
         <section id="dashboard" class="section hidden">
           <h2>&#128202; Business Dashboard</h2>
           <div class="dashboard-grid">
@@ -147,7 +142,6 @@
           </div>
         </section>
 
-        <!-- POS -->
 <section id="pos" class="section active">
   <h2>Point of Sale</h2>
   
@@ -224,7 +218,6 @@
   </div>
 </section>
 
-        <!-- Inventory -->
         <section id="posInventory" class="section hidden">
           <h2>Inventory Management</h2>
           <div class="inventory-header">
@@ -237,7 +230,6 @@
           </table>
         </section>
 
-        <!-- Sales -->
        <section id="sales" class="section hidden">
   <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
     <h2>Sales History</h2>
@@ -269,7 +261,6 @@
   </table>
 </section>
 
-        <!-- Debtors -->
         <section id="debtors" class="section hidden">
   <h2>Debtors / Credit Management</h2>
   <div class="inventory-header">
@@ -296,7 +287,6 @@
   </table>
 </section>
 
-        <!-- Receiving -->
         <section id="receiving" class="section hidden">
           <h2>&#128229; Inbound Receiving</h2>
           <p style="color:#718096;font-size:13px;margin-bottom:12px;">Received items are added directly to the <strong>Warehouse Inventory</strong>.</p>
@@ -320,7 +310,6 @@
           </table>
         </section>
 
-        <!-- Dispatch -->
         <section id="dispatch" class="section hidden">
           <h2>&#128228; Outbound Dispatch</h2>
           <p style="color:#718096;font-size:13px;margin-bottom:12px;">Dispatching deducts from <strong>Warehouse Inventory</strong>. If destination is a valid Shop ID, stock is <strong>automatically added to that shop's inventory</strong>.</p>
@@ -344,7 +333,6 @@
           </table>
         </section>
 
-        <!-- Adjustments -->
         <section id="adjustments" class="section hidden">
           <h2>&#128295; Stock Adjustments</h2>
           <p style="color:#718096;font-size:13px;margin-bottom:12px;">Adjustments apply to <strong>Warehouse Inventory</strong> stock levels.</p>
@@ -373,7 +361,6 @@
           </table>
         </section>
 
-        <!-- Warehouse Inventory -->
         <section id="warehouseInventory" class="section hidden">
           <h2>Warehouse Inventory</h2>
           <div class="inventory-header">
@@ -386,7 +373,6 @@
           </table>
         </section>
 
-        <!-- Warehouse Reports -->
         <section id="warehouseReports" class="section hidden">
           <h2>Warehouse Reports</h2>
           <div class="summary-cards">
@@ -401,21 +387,40 @@
           </table>
         </section>
 
-        <!-- Creditors -->
         <section id="creditors" class="section hidden">
-          <h2>Creditors</h2>
-          <div class="form-group"><label>Creditor Name</label><input type="text" id="creditorName" placeholder="e.g. Supplier A"></div>
-          <div class="form-group"><label>Amount Owed</label><input type="number" id="creditorAmount" value="0" min="0"></div>
-          <div class="form-group"><label>Due Date</label><input type="date" id="creditorDueDate"></div>
-          <button class="btn btn-success" onclick="addCreditor()">Add Creditor</button>
-          <p style="margin-top:10px;font-size:13px;">Total Unpaid Creditors: GH₵ <strong id="totalCredits">0.00</strong></p>
-          <table style="margin-top:10px">
-            <thead><tr><th>ID</th><th>Name</th><th>Amount</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
-            <tbody id="creditorsTableBody"></tbody>
-          </table>
-        </section>
+  <h2>Creditors</h2>
+  <div class="form-group">
+    <label>Creditor Name</label>
+    <input type="text" id="creditorName" placeholder="e.g. Supplier A">
+  </div>
+  <div class="form-group">
+    <label>Amount Owed (GH₵)</label>
+    <input type="number" id="creditorAmount" value="0" min="0" step="0.01">
+  </div>
+  <div class="form-group">
+    <label>Due Date</label>
+    <input type="date" id="creditorDueDate">
+  </div>
+  <button class="btn btn-success" onclick="addCreditor()">Add Creditor</button>
 
-        <!-- Manage Users (Admin only) -->
+  <p style="margin-top:15px; font-size:14px; font-weight: bold; color: #2d3748;">
+    Total Unpaid: GH₵ <span id="totalCredits" style="color: #e53e3e;">0.00</span>
+  </p>
+
+  <table style="margin-top:10px; width: 100%;">
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Balance</th> <th>Due Date</th>
+        <th>Status</th>
+        <th style="text-align: center;">Actions</th>
+      </tr>
+    </thead>
+    <tbody id="creditorsTableBody"></tbody>
+  </table>
+</section>
+
         <section id="users" class="section hidden">
           <h2>&#128100; Manage Shop Users</h2>
           <p style="color:#718096;margin-bottom:15px;font-size:13px;">Users who can log into this shop: <strong id="usersShopLabel"></strong></p>
@@ -430,9 +435,6 @@
     </div>
   </div>
 
-  <!-- ===== Modals ===== -->
-
-  <!-- Add Product Modal -->
   <div id="posProductModal" class="modal hidden">
     <div class="modal-content">
       <h3>Add New Product</h3>
@@ -450,7 +452,6 @@
     </div>
   </div>
 
-  <!-- Warehouse Product Modal -->
   <div id="warehouseProductModal" class="modal hidden">
     <div class="modal-content">
       <h3>Add Warehouse Product</h3>
@@ -467,7 +468,6 @@
     </div>
   </div>
 
-  <!-- Debtor Modal -->
   <div id="addDebtorModal" class="modal hidden">
   <div class="modal-content">
     <h2 id="debtorModalTitle">Add Existing Debtor</h2>
@@ -506,7 +506,6 @@
   </div>
 </div>
 
-  <!-- Add User / Shop Modal -->
   <div id="addAdminModal" class="modal hidden">
     <div class="modal-content">
       <h3>&#128274; Add User / Shop</h3>
@@ -531,7 +530,6 @@
     </div>
   </div>
 
-  <!-- Clear All Data Modal -->
   <div id="clearDataModal" class="modal hidden">
     <div class="modal-content">
       <h3>&#9888;&#65039; Clear All Data</h3>
@@ -545,7 +543,6 @@
     </div>
   </div>
 
-  <!-- Receipt Modal -->
   <div id="receiptModal" class="modal hidden">
     <div class="modal-content" style="max-width:480px">
       <h3>&#129534; Sale Receipt</h3>
@@ -557,7 +554,6 @@
     </div>
   </div>
 
-  <!-- Partial Payment Modal -->
  <div id="partialPaymentModal" class="modal hidden">
   <div class="modal-content">
     <h3>&#128176; Record Debt Payment</h3>
@@ -580,7 +576,28 @@
   </div>
 </div>
 
-  <!-- Firebase SDKs -->
+<div id="creditorPartPayModal" class="modal hidden">
+  <div class="modal-content" style="border-top: 5px solid #ed8936;">
+    <h3>&#128179; Record Part Payment</h3>
+    <input type="hidden" id="partPayCreditorId">
+    
+    <div style="background: #fffaf0; padding: 15px; border-radius: 4px; margin-bottom: 15px; text-align: center; border: 1px solid #feebc8;">
+      <p style="color: #c05621; font-size: 11px; text-transform: uppercase; margin-bottom: 5px;">Current Balance Owed</p>
+      <p style="font-size: 22px; font-weight: bold; color: #9c4221;">GH₵ <span id="creditorCurrentBalanceDisplay">0.00</span></p>
+    </div>
+
+    <div class="form-group">
+      <label>Amount to Pay (GH₵)</label>
+      <input type="number" id="creditorPartPayAmount" placeholder="0.00" step="0.01">
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeModal('creditorPartPayModal')">Cancel</button>
+      <button class="btn btn-success" onclick="saveCreditorPartPayment()" style="background: #ed8936; color: white; border: none;">Confirm Payment</button>
+    </div>
+  </div>
+</div>
+
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
   <script src="app.js"></script>
