@@ -1457,41 +1457,163 @@ function renderWarehouseReports(summary) {
 // ===========================
 //  Creditors
 // ===========================
+// Add Creditor - Ensures remainingBalance is set on creation
 async function addCreditor() {
   const name = document.getElementById("creditorName").value.trim();
-  const amount = parseFloat(document.getElementById("creditorAmount").value);
+  const amountInput = document.getElementById("creditorAmount").value;
+  const amount = parseFloat(amountInput);
   const dueDate = document.getElementById("creditorDueDate").value;
-  if (!name || isNaN(amount)) { alert("Please fill in creditor details!"); return; }
+  
+  if (!name || isNaN(amount) || amount <= 0) { 
+    alert("Please enter a valid name and amount!"); 
+    return; 
+  }
+  
   try {
-    await shopRef("creditors").add({ name, amount, dueDate, status: "unpaid" });
-    alert("Creditor added!");
+    await shopRef("creditors").add({ 
+      name, 
+      amount: amount,           // Original total
+      remainingBalance: amount, // Start balance same as amount
+      dueDate, 
+      status: "unpaid",
+      createdAt: new Date().toISOString()
+    });
+    
+    alert("Creditor added successfully!");
+    
+    // Reset form fields
+    document.getElementById("creditorName").value = "";
+    document.getElementById("creditorAmount").value = "0";
+    document.getElementById("creditorDueDate").value = "";
+    
     loadCreditors();
-  } catch (err) { console.error(err); }
+  } catch (err) { 
+    console.error("Error adding creditor:", err); 
+  }
 }
 
+// Load Creditors - Renders the table with BOTH buttons and updates Dashboard
 async function loadCreditors() {
   try {
     const snap = await shopRef("creditors").get();
     const tbody = document.getElementById("creditorsTableBody");
     tbody.innerHTML = "";
-    let totalCredits = 0;
+    let totalUnpaid = 0;
+
     snap.forEach(doc => {
       const c = doc.data();
-      if (c.status !== "paid") totalCredits += c.amount || 0;
-      tbody.innerHTML += `<tr>
-        <td>${doc.id.substring(0,8)}</td><td>${c.name}</td>
-        <td>GH₵${c.amount.toFixed(2)}</td><td>${c.dueDate||"-"}</td><td>${c.status}</td>
-        <td><button class="btn btn-success btn-sm" onclick="markCreditorPaid('${doc.id}')">Mark Paid</button></td>
-      </tr>`;
+      // Use remainingBalance if available, fallback to original amount
+      const currentBalance = (c.remainingBalance !== undefined) ? Number(c.remainingBalance) : Number(c.amount || 0);
+      
+      if (c.status !== "paid") totalUnpaid += currentBalance;
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${doc.id.substring(0, 8)}</td>
+          <td>${c.name}</td>
+          <td style="font-weight: bold;">GH₵ ${currentBalance.toFixed(2)}</td>
+          <td>${c.dueDate || "-"}</td>
+          <td><span class="status-badge status-${c.status}">${c.status}</span></td>
+          <td>
+            <div style="display:flex; gap:5px; justify-content: center;">
+              <button class="btn btn-success btn-sm" onclick="openCreditorPartPay('${doc.id}', ${currentBalance})">Part Pay</button>
+              <button class="btn btn-primary btn-sm" onclick="markCreditorPaid('${doc.id}')">Full Paid</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteCreditor('${doc.id}')">Delete</button>
+            </div>
+          </td>
+        </tr>`;
     });
-    document.getElementById("totalCredits").textContent = totalCredits.toFixed(2);
-  } catch (err) { console.error("loadCreditors:", err); }
+
+    // Update section total
+    document.getElementById("totalCredits").textContent = totalUnpaid.toFixed(2);
+    
+    // Update main dashboard card
+    const dashOwed = document.getElementById("dashCreditorsOwed");
+    if (dashOwed) dashOwed.textContent = `GH₵ ${totalUnpaid.toFixed(2)}`;
+
+  } catch (err) {
+    console.error("loadCreditors error:", err);
+  }
 }
 
-async function markCreditorPaid(id) {
-  await shopRef("creditors").doc(id).update({ status: "paid" });
-  loadCreditors();
+// Open Part Payment Modal
+function openCreditorPartPay(id, currentBalance) {
+    const modal = document.getElementById("creditorPartPayModal");
+    const idInput = document.getElementById("partPayCreditorId");
+    const balanceText = document.getElementById("creditorCurrentBalanceDisplay");
+    
+    if (modal && idInput && balanceText) {
+        idInput.value = id;
+        balanceText.textContent = currentBalance.toFixed(2);
+        document.getElementById("creditorPartPayAmount").value = ""; // Clear previous input
+        modal.classList.remove("hidden");
+    }
 }
+
+
+async function saveCreditorPartPayment() {
+    const id = document.getElementById("partPayCreditorId").value;
+    const amountToDeduct = parseFloat(document.getElementById("creditorPartPayAmount").value);
+    
+    if (isNaN(amountToDeduct) || amountToDeduct <= 0) { 
+        alert("Please enter a valid payment amount."); 
+        return; 
+    }
+
+    try {
+        const docRef = shopRef("creditors").doc(id);
+        const doc = await docRef.get();
+        const currentData = doc.data();
+        
+        const currentBalance = (currentData.remainingBalance !== undefined) ? currentData.remainingBalance : currentData.amount;
+        const newBalance = Math.max(0, currentBalance - amountToDeduct);
+
+        await docRef.update({
+            remainingBalance: newBalance,
+            status: newBalance <= 0 ? "paid" : "partial"
+        });
+
+        closeModal('creditorPartPayModal');
+        loadCreditors(); // This refreshes the dashboard automatically
+    } catch (err) {
+        console.error("Payment failed:", err);
+    }
+}
+
+// Mark as Full Paid
+async function markCreditorPaid(id) {
+  if (!confirm("Are you sure you want to mark this as fully paid?")) return;
+  try {
+    await shopRef("creditors").doc(id).update({ 
+      remainingBalance: 0, 
+      status: "paid",
+      paidAt: new Date().toISOString()
+    });
+    loadCreditors();
+  } catch (err) {
+    console.error("Error marking as paid:", err);
+  }
+}
+
+async function deleteCreditor(id) {
+  if (!confirm("Are you sure you want to delete this creditor record? This cannot be undone.")) return;
+
+  try {
+    await shopRef("creditors").doc(id).delete();
+    
+    // Refresh the table and the dashboard totals
+    loadCreditors(); 
+    
+    // Optional: If you have a separate dashboard refresh function, call it here
+    if (typeof updateDashboardStats === "function") updateDashboardStats();
+    
+    alert("Creditor record deleted.");
+  } catch (err) {
+    console.error("Error deleting creditor:", err);
+    alert("Failed to delete record.");
+  }
+}
+
 
 // ===========================
 //  Dashboard
@@ -1570,7 +1692,7 @@ async function loadDashboard() {
     const creditorsSnap = await shopRef("creditors").get();
     let creditorsOwed = 0;
     creditorsSnap.forEach(doc => { const c = doc.data(); if (c.status!=="paid") creditorsOwed += parseFloat(c.amount)||0; });
-    document.getElementById("dashCreditorsOwed").textContent = `GH₵ ${creditorsOwed.toFixed(2)}`;
+    document.getElementById("totalUnpaid").textContent = `GH₵ ${creditorsOwed.toFixed(2)}`;
 
     const invSnap = await shopRef("inventory").get();
     let lowCount = 0; const lowRows = [];
