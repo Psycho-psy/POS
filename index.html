@@ -100,6 +100,37 @@
         <button class="nav-btn admin-only" onclick="showAddAdminModal()">&#128274; Add User</button>
       </nav>
 
+      <!-- Mobile bottom navigation (visible on small screens only) -->
+      <nav class="mobile-nav">
+        <button class="nav-btn active" onclick="showSection('pos', event)">
+          <span class="nav-icon">🛒</span>POS
+        </button>
+        <button class="nav-btn" onclick="showSection('dashboard', event); loadDashboard()">
+          <span class="nav-icon">📊</span>Dash
+        </button>
+        <button class="nav-btn" onclick="showSection('posInventory', event)">
+          <span class="nav-icon">📦</span>Stock
+        </button>
+        <button class="nav-btn" onclick="showSection('sales', event)">
+          <span class="nav-icon">🧾</span>Sales
+        </button>
+        <button class="nav-btn" onclick="showSection('debtors', event)">
+          <span class="nav-icon">💰</span>Debtors
+        </button>
+        <button class="nav-btn" onclick="showSection('creditors', event)">
+          <span class="nav-icon">💳</span>Credits
+        </button>
+        <button class="nav-btn" onclick="showSection('receiving', event); populateWarehouseSelects()">
+          <span class="nav-icon">📥</span>Receive
+        </button>
+        <button class="nav-btn" onclick="showSection('warehouseInventory', event)">
+          <span class="nav-icon">🏭</span>Wh.
+        </button>
+        <button class="nav-btn admin-only" onclick="showSection('users', event); loadShopUsers()">
+          <span class="nav-icon">👤</span>Users
+        </button>
+      </nav>
+
       <main class="content-area">
 
         <section id="dashboard" class="section hidden">
