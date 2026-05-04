@@ -17,7 +17,16 @@ let db = null;
 if (typeof firebase !== "undefined") {
   if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
   db = firebase.firestore();
-  console.log("Firestore initialized.");
+  // Enable offline persistence so Firestore data works without internet
+  db.enablePersistence({ synchronizeTabs: true })
+    .catch(err => {
+      if (err.code === 'failed-precondition') {
+        console.warn('Offline persistence unavailable: multiple tabs open.');
+      } else if (err.code === 'unimplemented') {
+        console.warn('Offline persistence not supported in this browser.');
+      }
+    });
+  console.log("Firestore initialized with offline support.");
 } else {
   console.error("Firebase SDK not found.");
 }
