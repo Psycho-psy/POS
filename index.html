@@ -6,8 +6,26 @@
   <title>POS System</title>
   <link rel="stylesheet" href="style.css">
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    #offlineBanner {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 99999;
+      background: #f59e0b;
+      color: #1a1a1a;
+      text-align: center;
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+    #offlineBanner.show { display: block; }
+    body.offline-mode { padding-top: 36px; }
+  </style>
 </head>
 <body>
+  <div id="offlineBanner">⚡ You are offline — data will sync when connection is restored</div>
 
   <div id="loginScreen" class="login-container">
     <div class="login-box">
@@ -606,5 +624,31 @@
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
   <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
   <script src="app.js"></script>
+
+  <script>
+    // ── Service Worker registration ──
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+          .then(reg => console.log('SW registered:', reg.scope))
+          .catch(err => console.warn('SW registration failed:', err));
+      });
+    }
+
+    // ── Offline / Online banner ──
+    function updateOnlineStatus() {
+      const banner = document.getElementById('offlineBanner');
+      if (!navigator.onLine) {
+        banner.classList.add('show');
+        document.body.classList.add('offline-mode');
+      } else {
+        banner.classList.remove('show');
+        document.body.classList.remove('offline-mode');
+      }
+    }
+    window.addEventListener('online',  updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+    updateOnlineStatus(); // run on page load too
+  </script>
 </body>
 </html>
