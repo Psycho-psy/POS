@@ -286,8 +286,8 @@ async function loadInventory() {
       let expiryDisplay = p.expiryDate || "—";
       let expiryStyle = "";
       if (p.expiryDate) {
-        const exp = new Date(p.expiryDate);
-        if (exp <= today) { expiryStyle = 'style="color:#e53e3e;font-weight:bold"'; expiryDisplay = `&#128308; ${p.expiryDate} (Expired)`; }
+        const exp = parseLocalDate(p.expiryDate);
+        if (exp < today) { expiryStyle = 'style="color:#e53e3e;font-weight:bold"'; expiryDisplay = `&#128308; ${p.expiryDate} (Expired)`; }
         else if (exp <= fourMonthsLater) { expiryStyle = 'style="color:#dd6b20;font-weight:bold"'; expiryDisplay = `&#9203; ${p.expiryDate} (Soon)`; }
       }
       let rowStyle = low ? ' style="background:#fff5f5"' : "";
@@ -1635,6 +1635,11 @@ async function deleteCreditor(id) {
 // ===========================
 //  Dashboard
 // ===========================
+function parseLocalDate(str) {
+  const parts = str.split("-").map(Number);
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
 async function loadDashboard() {
   if (!currentShopId) return;
   const today = new Date().toISOString().split("T")[0];
@@ -1709,7 +1714,7 @@ async function loadDashboard() {
     const creditorsSnap = await shopRef("creditors").get();
     let creditorsOwed = 0;
     creditorsSnap.forEach(doc => { const c = doc.data(); if (c.status!=="paid") creditorsOwed += parseFloat(c.amount)||0; });
-    document.getElementById("totalUnpaid").textContent = `GH₵ ${creditorsOwed.toFixed(2)}`;
+    document.getElementById("dashCreditorsOwed").textContent = `GH₵ ${creditorsOwed.toFixed(2)}`;
 
     const invSnap = await shopRef("inventory").get();
     let lowCount = 0; const lowRows = [];
@@ -1725,22 +1730,24 @@ async function loadDashboard() {
       ? `<p style="color:#38a169;font-size:13px">All items well stocked</p>`
       : lowRows.join("");
 
-    // Expiry alerts — products expiring within 4 months
+    // Expiry alerts — reuse invSnap already fetched above
     const expiryRows = [];
     const todayDate = new Date(); todayDate.setHours(0,0,0,0);
     const fourMonths = new Date(todayDate); fourMonths.setMonth(fourMonths.getMonth() + 4);
     invSnap.forEach(doc => {
       const p = doc.data();
-      if (!p.expiryDate) return;
-      const exp = new Date(p.expiryDate);
-      if (exp <= todayDate) {
-        expiryRows.push({ name: p.name, expiryDate: p.expiryDate, label: "&#128308; EXPIRED", color: "#e53e3e" });
+      const raw = (p.expiryDate || "").trim();
+      if (!raw) return;
+      const exp = parseLocalDate(raw);
+      if (isNaN(exp.getTime())) return;
+      if (exp < todayDate) {
+        expiryRows.push({ name: p.name, expiryDate: raw, label: "&#128308; EXPIRED", color: "#e53e3e" });
       } else if (exp <= fourMonths) {
         const daysLeft = Math.ceil((exp - todayDate) / (1000 * 60 * 60 * 24));
-        expiryRows.push({ name: p.name, expiryDate: p.expiryDate, label: `&#9203; ${daysLeft}d left`, color: "#dd6b20" });
+        expiryRows.push({ name: p.name, expiryDate: raw, label: `&#9203; ${daysLeft}d left`, color: "#dd6b20" });
       }
     });
-    expiryRows.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+    expiryRows.sort((a, b) => parseLocalDate(a.expiryDate) - parseLocalDate(b.expiryDate));
     document.getElementById("dashExpiryList").innerHTML = expiryRows.length === 0
       ? `<p style="color:#38a169;font-size:13px">No products expiring soon</p>`
       : expiryRows.map(e => `<div class="dash-stock-item"><span>${e.name}</span><span style="color:${e.color};font-weight:bold">${e.label} — ${e.expiryDate}</span></div>`).join("");
