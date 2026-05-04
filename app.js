@@ -206,7 +206,7 @@ function showSection(sectionId, event = null) {
 // ===========================
 function showAddProductModal() {
   document.getElementById("posProductModal").classList.remove("hidden");
-  ["productName","productId","productCategory","sellingPrice","costPrice","stockQuantity","stockLimit"]
+  ["productName","productId","productCategory","sellingPrice","costPrice","stockQuantity","stockLimit","productExpiryDate"]
     .forEach(id => document.getElementById(id).value = "");
 }
 
@@ -217,6 +217,7 @@ async function saveProduct() {
   const costPrice = parseFloat(document.getElementById("costPrice").value) || 0;
   const newStockAmount = parseInt(document.getElementById("stockQuantity").value) || 0;
   const stockLimit = parseInt(document.getElementById("stockLimit").value) || 0;
+  const expiryDate = document.getElementById("productExpiryDate").value || "";
 
   if (!productName || !category) { 
     alert("Please fill in all required fields!"); 
@@ -239,7 +240,8 @@ async function saveProduct() {
         sellingPrice: sellingPrice,
         costPrice: costPrice,
         stockLimit: stockLimit,
-        category: category
+        category: category,
+        ...(expiryDate && { expiryDate })
       });
       alert(`Stock updated! ${productName} total is now: ${updatedStock}`);
     } else {
@@ -255,6 +257,7 @@ async function saveProduct() {
         costPrice: costPrice,
         stockQuantity: newStockAmount,
         stockLimit: stockLimit,
+        expiryDate: expiryDate,
         status: "active",
         createdAt: new Date().toISOString()
       });
@@ -275,14 +278,26 @@ async function loadInventory() {
     const snap = await shopRef("inventory").get();
     const tbody = document.getElementById("inventoryTableBody");
     tbody.innerHTML = "";
+    const today = new Date(); today.setHours(0,0,0,0);
+    const fourMonthsLater = new Date(today); fourMonthsLater.setMonth(fourMonthsLater.getMonth() + 4);
     snap.forEach(doc => {
       const p = doc.data();
       const low = (parseInt(p.stockQuantity) || 0) <= (parseInt(p.stockLimit) || 0);
-      tbody.innerHTML += `<tr${low ? ' style="background:#fff5f5"' : ""}>
+      let expiryDisplay = p.expiryDate || "—";
+      let expiryStyle = "";
+      if (p.expiryDate) {
+        const exp = new Date(p.expiryDate);
+        if (exp <= today) { expiryStyle = 'style="color:#e53e3e;font-weight:bold"'; expiryDisplay = `&#128308; ${p.expiryDate} (Expired)`; }
+        else if (exp <= fourMonthsLater) { expiryStyle = 'style="color:#dd6b20;font-weight:bold"'; expiryDisplay = `&#9203; ${p.expiryDate} (Soon)`; }
+      }
+      let rowStyle = low ? ' style="background:#fff5f5"' : "";
+      tbody.innerHTML += `<tr${rowStyle}>
         <td>${doc.id}</td><td>${p.name}</td><td>${p.category}</td>
         <td>GH₵${p.sellingPrice}</td><td>GH${p.costPrice}</td>
         <td>${p.stockQuantity}${low ? " &#9888;" : ""}</td>
-        <td>${p.stockLimit}</td><td>${p.status}</td>
+        <td>${p.stockLimit}</td>
+        <td ${expiryStyle}>${expiryDisplay}</td>
+        <td>${p.status}</td>
         <td>
         <button class="btn btn-primary btn-sm" onclick="editProduct('${doc.id}')">Edit</button>
         <button class="btn btn-danger btn-sm" onclick="deleteProduct('${doc.id}')">Delete</button>
@@ -317,6 +332,7 @@ async function editProduct(sku) {
     document.getElementById("costPrice").value = p.costPrice || 0;
     document.getElementById("stockQuantity").value = p.stockQuantity || 0;
     document.getElementById("stockLimit").value = p.stockLimit || 0;
+    document.getElementById("productExpiryDate").value = p.expiryDate || "";
 
     // 4. Transform the "Save" button into an "Update" button
     const actionBtn = document.querySelector("#posProductModal .btn-primary");
@@ -339,6 +355,7 @@ async function saveProductUpdate(sku) {
     costPrice: parseFloat(document.getElementById("costPrice").value) || 0,
     stockQuantity: parseInt(document.getElementById("stockQuantity").value) || 0,
     stockLimit: parseInt(document.getElementById("stockLimit").value) || 0,
+    expiryDate: document.getElementById("productExpiryDate").value || "",
     lastUpdated: new Date().toISOString()
   };
 
@@ -1707,6 +1724,26 @@ async function loadDashboard() {
     document.getElementById("dashLowStockList").innerHTML = lowCount === 0
       ? `<p style="color:#38a169;font-size:13px">All items well stocked</p>`
       : lowRows.join("");
+
+    // Expiry alerts — products expiring within 4 months
+    const expiryRows = [];
+    const todayDate = new Date(); todayDate.setHours(0,0,0,0);
+    const fourMonths = new Date(todayDate); fourMonths.setMonth(fourMonths.getMonth() + 4);
+    invSnap.forEach(doc => {
+      const p = doc.data();
+      if (!p.expiryDate) return;
+      const exp = new Date(p.expiryDate);
+      if (exp <= todayDate) {
+        expiryRows.push({ name: p.name, expiryDate: p.expiryDate, label: "&#128308; EXPIRED", color: "#e53e3e" });
+      } else if (exp <= fourMonths) {
+        const daysLeft = Math.ceil((exp - todayDate) / (1000 * 60 * 60 * 24));
+        expiryRows.push({ name: p.name, expiryDate: p.expiryDate, label: `&#9203; ${daysLeft}d left`, color: "#dd6b20" });
+      }
+    });
+    expiryRows.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+    document.getElementById("dashExpiryList").innerHTML = expiryRows.length === 0
+      ? `<p style="color:#38a169;font-size:13px">No products expiring soon</p>`
+      : expiryRows.map(e => `<div class="dash-stock-item"><span>${e.name}</span><span style="color:${e.color};font-weight:bold">${e.label} — ${e.expiryDate}</span></div>`).join("");
   } catch (err) { console.error("loadDashboard:", err); }
 }
 
