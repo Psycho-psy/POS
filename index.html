@@ -128,6 +128,10 @@
               <h3>&#128308; Low Stock Alerts</h3>
               <div id="dashLowStockList" class="dash-list"></div>
             </div>
+            <div class="dash-card">
+              <h3>&#9203; Expiry Alerts <span style="font-size:12px;color:#dd6b20;font-weight:normal">(expiring within 4 months)</span></h3>
+              <div id="dashExpiryList" class="dash-list"></div>
+            </div>
             <div class="dash-card dash-card-wide">
               <h3>&#127942; Most Purchased Items</h3>
               <table class="dash-table">
@@ -225,7 +229,7 @@
             <button class="btn btn-primary" onclick="showAddProductModal()">+ Add New Product</button>
           </div>
           <table>
-            <thead><tr><th>SKU</th><th>Name</th><th>Category</th><th>Sell Price</th><th>Cost Price</th><th>Stock</th><th>Low Limit</th><th>Status</th><th>Actions</th></tr></thead>
+            <thead><tr><th>SKU</th><th>Name</th><th>Category</th><th>Sell Price</th><th>Cost Price</th><th>Stock</th><th>Low Limit</th><th>Expiry Date</th><th>Status</th><th>Actions</th></tr></thead>
             <tbody id="inventoryTableBody"></tbody>
           </table>
         </section>
@@ -445,6 +449,7 @@
       <div class="form-group"><label>Cost Price</label><input type="number" id="costPrice" placeholder="GH₵"></div>
       <div class="form-group"><label>Stock Quantity</label><input type="number" id="stockQuantity" placeholder="e.g. 200"></div>
       <div class="form-group"><label>Low Stock Alert Limit</label><input type="number" id="stockLimit" placeholder="e.g. 10"></div>
+      <div class="form-group"><label>Expiry Date <span style="color:#718096;font-size:12px">(optional)</span></label><input type="date" id="productExpiryDate"></div>
       <div class="modal-actions">
         <button class="btn btn-secondary" onclick="closeModal('posProductModal')">Cancel</button>
         <button class="btn btn-primary" onclick="saveProduct()">Save Product</button>
