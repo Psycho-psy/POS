@@ -446,6 +446,8 @@ table tbody tr:hover {
   padding: 28px;
   width: 420px;
   max-width: 92vw;
+  max-height: 90vh;
+  overflow-y: auto;
   box-shadow: var(--shadow-lg);
   animation: modalIn 0.22s cubic-bezier(.34,1.56,.64,1) both;
   border-top: 3px solid var(--indigo);
