@@ -723,12 +723,12 @@ async function viewSaleDetails(saleId) {
   modal.classList.remove("hidden");
 }
 
-function printReceipt() {
-  const content = document.getElementById("receiptContent").innerHTML;
-  const win = window.open("", "_blank", "width=400,height=600");
-  win.document.write(`<html><head><title>Receipt</title><style>body{font-family:monospace;padding:20px}table{width:100%;border-collapse:collapse}th,td{padding:4px 6px}</style></head><body>${content}<script>window.onload=()=>window.print()<\/script></body></html>`);
-  win.document.close();
-}
+ function printReceipt() {
+   const content = document.getElementById("receiptContent").innerHTML;
+   const win = window.open("", "_blank", "width=400,height=600");
+   win.document.write(`<html><head><title>Receipt</title><style>@page{size:80mm auto;margin:0}html,body{margin:0;padding:0}body{font-family:monospace;padding:10px 12px;width:80mm;box-sizing:border-box}table{width:100%;border-collapse:collapse}th,td{padding:4px 6px}</style></head><body>${content}<script>window.onload=()=>window.print()<\/script></body></html>`);
+   win.document.close();
+ }
 
 function showDebtorModal() {
   document.getElementById("addDebtorModal").classList.remove("hidden");
